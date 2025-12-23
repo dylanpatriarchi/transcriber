@@ -5,6 +5,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { Loader2, Mic } from "lucide-react";
+import Link from "next/link";
 
 export default function LoginForm() {
     const [email, setEmail] = useState("");
@@ -66,9 +67,17 @@ export default function LoginForm() {
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5 ml-1">
-                                Password
-                            </label>
+                            <div className="flex items-center justify-between mb-1.5 ml-1">
+                                <label htmlFor="password" className="block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                    Password
+                                </label>
+                                <Link
+                                    href="/login/reset-password"
+                                    className="text-[10px] font-bold text-gray-400 hover:text-black uppercase tracking-widest transition-colors"
+                                >
+                                    Forgot?
+                                </Link>
+                            </div>
                             <input
                                 id="password"
                                 type="password"
