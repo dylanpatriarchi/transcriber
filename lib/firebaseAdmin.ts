@@ -13,7 +13,7 @@ if (!admin.apps.length) {
                     clientEmail,
                     privateKey: privateKey.replace(/\\n/g, '\n'),
                 }),
-                projectId: projectId, // Explicitly pass projectId
+                projectId: projectId,
                 storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
             });
             console.log("Firebase Admin initialized with explicit credentials.");
