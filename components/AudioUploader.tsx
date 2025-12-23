@@ -5,13 +5,14 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage, auth } from "@/lib/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { TranscribeRequest, TranscribeResponse } from "@/types";
+import { Upload, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function AudioUploader() {
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [transcribing, setTranscribing] = useState(false);
     const [error, setError] = useState("");
-    const [sucessMsg, setSuccessMsg] = useState("");
+    const [successMsg, setSuccessMsg] = useState("");
 
     const handleUpload = async () => {
         if (!file || !auth.currentUser) return;
@@ -21,7 +22,6 @@ export default function AudioUploader() {
         setSuccessMsg("");
 
         try {
-            // Validate file type client-side
             if (!file.type.startsWith('audio/')) {
                 throw new Error("Please upload a valid audio file.");
             }
@@ -29,14 +29,12 @@ export default function AudioUploader() {
             const fileId = uuidv4();
             const storageRef = ref(storage, `users/${auth.currentUser.uid}/uploads/${fileId}-${file.name}`);
 
-            // 1. Upload to Firebase Storage
             await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(storageRef);
 
             setUploading(false);
             setTranscribing(true);
 
-            // 2. Call API to transcribe
             const token = await auth.currentUser.getIdToken();
 
             const payload: TranscribeRequest = {
@@ -64,59 +62,71 @@ export default function AudioUploader() {
                 throw new Error(data.error);
             }
 
-            setSuccessMsg("Transcription complete! Check the list below.");
+            setSuccessMsg("Transcription complete!");
             setFile(null);
+
+            // Clear success message after 3 seconds
+            setTimeout(() => setSuccessMsg(""), 3000);
         } catch (err: any) {
             setError(err.message || "An unexpected error occurred");
-            console.error(err);
         } finally {
             setUploading(false);
             setTranscribing(false);
         }
     };
 
+    const isProcessing = uploading || transcribing;
+
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6 transition-all">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">New Transcription</h3>
+        <div className="border border-gray-200 rounded-lg p-6 bg-white">
+            <h2 className="text-xl font-semibold mb-4">New Transcription</h2>
 
             <div className="space-y-4">
+                {/* File Input */}
                 <label className="block">
-                    <span className="sr-only">Choose audio file</span>
-                    <input
-                        type="file"
-                        accept="audio/*"
-                        onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
-                        className="block w-full text-sm text-gray-500
-                file:mr-4 file:py-2.5 file:px-4
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-indigo-50 file:text-indigo-700
-                hover:file:bg-indigo-100 dark:text-gray-300 dark:file:bg-gray-700 dark:file:text-gray-200
-                cursor-pointer focus:outline-none"
-                    />
+                    <div className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${file ? 'border-black bg-gray-50' : 'border-gray-300 hover:border-gray-400'
+                        }`}>
+                        <input
+                            type="file"
+                            accept="audio/*"
+                            onChange={(e) => setFile(e.target.files ? e.target.files[0] : null)}
+                            className="hidden"
+                            disabled={isProcessing}
+                        />
+                        <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                        <p className="text-sm text-gray-600">
+                            {file ? file.name : 'Click to upload or drag and drop'}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">Audio files only</p>
+                    </div>
                 </label>
 
+                {/* Status Messages */}
                 {error && (
-                    <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm font-medium">
-                        {error}
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                        <span>{error}</span>
                     </div>
                 )}
 
-                {sucessMsg && (
-                    <div className="p-3 rounded-md bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-sm font-medium">
-                        {sucessMsg}
+                {successMsg && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 text-green-700 text-sm">
+                        <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                        <span>{successMsg}</span>
                     </div>
                 )}
 
+                {/* Upload Button */}
                 <button
                     onClick={handleUpload}
-                    disabled={!file || uploading || transcribing}
-                    className={`w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white transition-all transform
-            ${(!file || uploading || transcribing)
-                            ? 'bg-gray-400 cursor-not-allowed opacity-70'
-                            : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:scale-[0.98]'}`}
+                    disabled={!file || isProcessing}
+                    className={`w-full py-3 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${!file || isProcessing
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-black text-white hover:bg-gray-800'
+                        }`}
                 >
-                    {uploading ? "Uploading Audio..." : transcribing ? "Processing Transcription..." : "Start Transcription"}
+                    {isProcessing && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {uploading ? "Uploading..." : transcribing ? "Processing transcription..." : "Start Transcription"}
                 </button>
             </div>
         </div>

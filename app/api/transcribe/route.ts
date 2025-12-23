@@ -82,20 +82,43 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // 2.5. Format as Markdown using OpenAI
+        let markdownText = "";
+        try {
+            const completion = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a professional editor. Format the following raw transcription into clean, organized Markdown. Use headers (##, ###), bullet points, bold text, and other markdown formatting where appropriate to improve readability. Preserve all content but structure it professionally."
+                    },
+                    {
+                        role: "user",
+                        content: transcriptionText
+                    }
+                ],
+                temperature: 0.3,
+            });
+            markdownText = completion.choices[0]?.message?.content || transcriptionText;
+        } catch (markdownError: any) {
+            console.warn("Markdown formatting failed, using raw text:", markdownError);
+            markdownText = transcriptionText; // Fallback to raw if formatting fails
+        }
+
         // 3. Save to Firestore
         try {
             await adminDb.collection("users").doc(userId).collection("transcriptions").add({
                 originalFile: storagePath,
                 text: transcriptionText,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(), // Use server timestamp
+                markdown: markdownText,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
         } catch (dbError) {
             console.error("Firestore write error:", dbError);
-            // Return error because the user won't see their result otherwise
             return NextResponse.json<TranscribeResponse>({ error: "Failed to save transcription result" }, { status: 500 });
         }
 
-        return NextResponse.json<TranscribeResponse>({ text: transcriptionText });
+        return NextResponse.json<TranscribeResponse>({ text: transcriptionText, markdown: markdownText });
 
     } catch (error: any) {
         console.error("Unexpected Transcription error:", error);
