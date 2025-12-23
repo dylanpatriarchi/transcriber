@@ -1,90 +1,57 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthContext";
-import { auth } from "@/lib/firebase";
 import AudioUploader from "@/components/AudioUploader";
-import TranscriptionList from "@/components/TranscriptionList";
-import { LogOut, Mic, FileText } from "lucide-react";
+import { useAuth } from "@/components/AuthContext";
+import { Mic, Zap, Clock, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
 export default function Dashboard() {
-    const { user, loading } = useAuth();
-    const router = useRouter();
-
-    useEffect(() => {
-        if (!loading && !user) {
-            router.push("/login");
-        }
-    }, [user, loading, router]);
-
-    if (loading || !user) {
-        return null;
-    }
+    const { user } = useAuth();
 
     return (
-        <div className="min-h-screen bg-white">
-            {/* Header */}
-            <header className="border-b border-gray-200 bg-white sticky top-0 z-10">
-                <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Mic className="w-5 h-5" />
-                        <h1 className="text-lg font-semibold">Transcriber</h1>
+        <div className="space-y-10">
+            {/* Welcome Header */}
+            <div>
+                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+                <p className="text-gray-500 mt-1">
+                    Welcome back, {user?.email}
+                </p>
+            </div>
+
+            {/* Quick Actions Grid */}
+            <section>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
+                    Quick Actions
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="group p-6 border border-gray-200 rounded-xl bg-white hover:border-black transition-all cursor-default">
+                        <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center mb-4 transition-transform group-hover:scale-105">
+                            <Mic className="w-5 h-5 text-white" />
+                        </div>
+                        <h4 className="font-bold text-lg">New Transcription</h4>
+                        <p className="text-gray-500 text-sm mt-1">Upload any audio file to start transcribing with AI.</p>
                     </div>
-                    <button
-                        onClick={() => auth.signOut()}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-                    >
-                        <LogOut className="w-4 h-4" />
-                        Sign Out
-                    </button>
-                </div>
-            </header>
 
-            {/* Main Content */}
-            <main className="max-w-6xl mx-auto px-6 py-8">
-                {/* Welcome Section */}
-                <div className="mb-8">
-                    <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
-                    <p className="text-gray-600">Welcome back, {user.email}</p>
+                    <Link href="/dashboard/transcriptions" className="group p-6 border border-gray-200 rounded-xl bg-white hover:border-black transition-all">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mb-4 transition-transform group-hover:scale-105">
+                            <Zap className="w-5 h-5 text-black" />
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <h4 className="font-bold text-lg">View History</h4>
+                            <ChevronRight className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                        </div>
+                        <p className="text-gray-500 text-sm mt-1">Browse and search through your previous transcriptions.</p>
+                    </Link>
                 </div>
+            </section>
 
-                {/* Quick Actions */}
-                <div className="mb-8">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                            <div className="w-10 h-10 rounded-lg bg-black flex items-center justify-center">
-                                <Mic className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                                <div className="font-medium">New Transcription</div>
-                                <div className="text-xs text-gray-500">Upload audio file</div>
-                            </div>
-                        </button>
-
-                        <button className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-                            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                                <FileText className="w-5 h-5 text-gray-600" />
-                            </div>
-                            <div>
-                                <div className="font-medium">View All</div>
-                                <div className="text-xs text-gray-500">Browse transcriptions</div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-
-                {/* Upload Section */}
-                <div className="mb-8">
-                    <AudioUploader />
-                </div>
-
-                {/* Transcriptions List */}
-                <div>
-                    <TranscriptionList />
-                </div>
-            </main>
+            {/* Upload Section */}
+            <section>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
+                    Upload Audio
+                </h3>
+                <AudioUploader />
+            </section>
         </div>
     );
 }
