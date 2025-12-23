@@ -1,36 +1,49 @@
 import * as admin from 'firebase-admin';
 
-if (!admin.apps.length) {
+// Helper to handle private key formatting for both escaped and unescaped newlines, and remove quotes
+const formatPrivateKey = (key: string) => {
+    const rawKey = key.replace(/^"|"$/g, '');
+    return rawKey.replace(/\\n/g, '\n');
+};
+
+const initializeFirebaseAdmin = () => {
     const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-    if (privateKey && clientEmail) {
-        try {
-            admin.initializeApp({
-                credential: admin.credential.cert({
-                    projectId,
-                    clientEmail,
-                    privateKey: privateKey.replace(/\\n/g, '\n'),
-                }),
-                projectId: projectId,
-                storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-            });
-            console.log("Firebase Admin initialized with explicit credentials.");
-        } catch (error) {
-            console.error("Error initializing Firebase Admin with credentials:", error);
-        }
-    } else {
-        console.warn("Missing FIREBASE_PRIVATE_KEY or FIREBASE_CLIENT_EMAIL. Attempting default init...");
-        try {
-            admin.initializeApp();
-            console.log("Firebase Admin initialized with default credentials.");
-        } catch (e) {
-            console.warn("Firebase Admin default init failed:", e);
-        }
+    if (!projectId || !clientEmail || !privateKey) {
+        throw new Error("Missing Firebase Admin credentials (NEXT_PUBLIC_FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, or FIREBASE_PRIVATE_KEY)");
     }
-}
 
-export const adminAuth = admin.auth();
-export const adminDb = admin.firestore();
-export const adminStorage = admin.storage();
+    try {
+        // Use a unique name for the app to avoid conflicts with default app or HMR issues
+        const appName = "transcriber-server";
+
+        // Check if existing app instance exists
+        const existingApp = admin.apps.find(app => app?.name === appName);
+        if (existingApp) {
+            return existingApp;
+        }
+
+        return admin.initializeApp({
+            credential: admin.credential.cert({
+                projectId,
+                clientEmail,
+                privateKey: formatPrivateKey(privateKey),
+            }),
+            projectId,
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        }, appName);
+    } catch (error) {
+        console.error("Firebase Admin initialization failed:", error);
+        throw error;
+    }
+};
+
+// Initialize immediately to catch errors at startup/module load
+const app = initializeFirebaseAdmin();
+
+export const adminAuth = admin.auth(app);
+export const adminDb = admin.firestore(app);
+export const adminStorage = admin.storage(app);
+
